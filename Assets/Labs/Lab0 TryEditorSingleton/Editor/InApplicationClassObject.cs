@@ -1,24 +1,31 @@
-﻿using UnityEditor;
+﻿using System;
+using UnityEditor;
 using UnityEditor.ShortcutManagement;
 using UnityEngine;
 namespace Labs.Lab0_TryEditorSingleton.Editor
 {
-    [FilePath( "SOManager", FilePathAttribute.Location.ProjectFolder )]
+    [FilePath( "Managers/InApplicationClassObject.ssmanager", FilePathAttribute.Location.ProjectFolder )]
     public class InApplicationClassObject : ScriptableSingleton<InApplicationClassObject>
     {
 
+        public event Action UpdateViewer;
         public int value;
 
-        [InitializeOnLoadMethod]
+        [Shortcut( "InApplicationClassObject/LogValue" )]
         static void AddValue()
         {
             instance.value++;
+            instance.Save( true );
+            instance.UpdateViewer?.Invoke();
         }
 
-        [Shortcut( "InApplicationClassObject/LogValue" )]
+        [InitializeOnLoadMethod]
         static void LogValue()
         {
-            Debug.Log( instance.value );
+            // Debug.Log( instance.value );
         }
+
+        public string FilePath => GetFilePath();
+
     }
 }

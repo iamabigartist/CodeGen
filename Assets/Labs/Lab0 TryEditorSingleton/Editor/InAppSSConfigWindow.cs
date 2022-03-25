@@ -17,10 +17,13 @@ namespace Labs.Lab0_TryEditorSingleton.Editor
         void OnEnable()
         {
             instance = InApplicationClassObject.instance;
+            instance.UpdateViewer += Repaint;
+            var a = 1;
         }
 
         void OnGUI()
         {
+            EditorGUILayout.LabelField( $"{instance.FilePath}" );
             instance.value = EditorGUILayout.IntField( "value", instance.value );
 
             if (GUILayout.Button( "Minus Value" ))
