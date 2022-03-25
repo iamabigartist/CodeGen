@@ -1,38 +1,36 @@
-﻿using System.IO;
-using System.Text;
-using UnityEditor;
-using UnityEngine;
-using UnityEditorInternal;
-using System;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-
+using UnityEditor;
+using UnityEditor.ShortcutManagement;
+using UnityEngine;
 namespace DefaultCompany.Test
 {
     // classes dont need to be static when you are using InitializeOnLoad
     [InitializeOnLoad]
     public class SceneNameCodeGenerator
     {
-        private static SceneNameCodeGenerator instance;
-        private CodeGeneratorCommon common = new CodeGeneratorCommon();
-        private static CodeGeneratorCommon Com { get { return instance.common; } }
+        static SceneNameCodeGenerator instance;
+        CodeGeneratorCommon common = new();
+        static CodeGeneratorCommon Com => instance.common;
 
-        private const string FileName = "SceneNames";
-        private static string FilePath { get { return string.Format(CodeGeneratorCommon.FilePathFormat, CodeGeneratorCommon.DirPath, FileName); } }
+        const string FileName = "SceneNames";
+        static string FilePath => string.Format( CodeGeneratorCommon.FilePathFormat, CodeGeneratorCommon.DirPath, FileName );
 
         // static constructor
         static SceneNameCodeGenerator()
         {
             if (instance != null) return;
-            instance = new SceneNameCodeGenerator();
-            instance.common = new CodeGeneratorCommon();
+
+            instance = new();
+            instance.common = new();
             //subscripe to event
-            EditorApplication.update += UpdateSceneNames;
+            // EditorApplication.update += UpdateSceneNames;
             // get tags
             Com.names = GetNewName();
+
             // write file
-            if (!File.Exists(FilePath))
+            if (!File.Exists( FilePath ))
             {
                 WriteCodeFile();
             }
@@ -40,19 +38,23 @@ namespace DefaultCompany.Test
 
         static List<string> GetNewName()
         {
-            return EditorBuildSettings.scenes.Select(x => x.path).ToList();
+            return EditorBuildSettings.scenes.Select( x => x.path ).ToList();
         }
 
+        [Shortcut( "Gen/RefreshSceneName", KeyCode.F1, ShortcutModifiers.Alt | ShortcutModifiers.Control )]
         // update method that has to be called every frame in the editor
-        private static void UpdateSceneNames()
+        static void UpdateSceneNames()
         {
+
             if (Application.isPlaying) return;
 
             if (EditorApplication.timeSinceStartup < Com.nextCheckTime) return;
+
             Com.nextCheckTime = EditorApplication.timeSinceStartup + CodeGeneratorCommon.CheckIntervalSec;
 
             var newNames = GetNewName();
-            if (Com.SomethingHasChanged(Com.names, newNames))
+
+            if (Com.SomethingHasChanged( Com.names, newNames ))
             {
                 Com.names = newNames;
                 WriteCodeFile();
@@ -60,28 +62,30 @@ namespace DefaultCompany.Test
         }
 
         // writes a file to the project folder
-        private static void WriteCodeFile()
+        static void WriteCodeFile()
         {
-            Com.WriteCodeFile(FilePath, builder =>
+            Com.WriteCodeFile( FilePath, builder =>
             {
                 WrappedInt indentCount = 0;
-                builder.AppendIndentLine(indentCount, Com.AutoGenTemplate);
-                builder.AppendIndentLine(indentCount, Com.NameSpaceTemplate);
-                using (new CurlyIndent(builder, indentCount))
+                builder.AppendIndentLine( indentCount, Com.AutoGenTemplate );
+                builder.AppendIndentLine( indentCount, Com.NameSpaceTemplate );
+
+                using (new CurlyIndent( builder, indentCount ))
                 {
-                    builder.AppendIndentFormatLine(indentCount, "public static class {0}", FileName);
-                    using (new CurlyIndent(builder, indentCount))
+                    builder.AppendIndentFormatLine( indentCount, "public static class {0}", FileName );
+
+                    using (new CurlyIndent( builder, indentCount ))
                     {
                         foreach (string name in Com.names)
                         {
-                            // ex) assets/scenes/menu.unity -> menu 
-                            var tail = name.Substring(name.LastIndexOf('/') + 1);
-                            var result = tail.Substring(0, tail.LastIndexOf('.'));
-                            builder.AppendIndentFormatLine(indentCount, "public const string {0} = @\"{1}\";", Com.MakeIdentifier(result), Com.EscapeDoubleQuote(name));
+                            // ex) assets/scenes/menu.unity -> menu
+                            var tail = name.Substring( name.LastIndexOf( '/' ) + 1 );
+                            var result = tail.Substring( 0, tail.LastIndexOf( '.' ) );
+                            builder.AppendIndentFormatLine( indentCount, "public const string {0} = @\"{1}\";", Com.MakeIdentifier( result ), Com.EscapeDoubleQuote( name ) );
                         }
                     }
                 }
-            });
+            } );
         }
     }
 }
